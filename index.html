@@ -42,8 +42,10 @@
     .bubble { max-width: 74%; background: var(--white); border-radius: 8px; padding: 8px 10px; font-size: 15px; line-height: 1.45; position: relative; }
     .me .bubble { background: var(--bubble); }
     .who { font-size: 11px; color: var(--muted); margin-bottom: 2px; padding-left: 2px; }
-    .speak { margin-top: 6px; border: 0; background: 0; color: var(--muted); font-size: 11px; padding: 0; display: inline-flex; gap: 4px; align-items: center; }
-    .speak.on { color: var(--green); }
+    .speak { margin-top: 6px; border: 0; background: var(--white); color: var(--muted); font-size: 12px; padding: 0 10px; display: inline-flex; gap: 4px; align-items: center; border-radius: 999px; box-shadow: 0 0 0 1px rgba(0,0,0,.06); height: 28px; }
+    .speak.on { background: var(--green); color: #fff; box-shadow: none; }
+    .me .speak { background: rgba(0,0,0,.08); box-shadow: none; color: rgba(25,25,25,.7); }
+    .me .speak.on { background: var(--green); color: #fff; }
     .sys { text-align: center; color: var(--muted); font-size: 12px; padding: 8px 32px; }
     .composer { border-top: 1px solid var(--line); background: var(--bar); display: flex; gap: 6px; padding: 8px; align-items: flex-end; }
     .composer textarea { flex: 1; min-height: 36px; max-height: 96px; resize: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 15px; outline: 0; font-family: inherit; }
@@ -104,6 +106,7 @@
     {id:"p-1005", nick:"不听完整的歌", job:"洗衣机报错", g:"她", hue:"#3a5a3a"},
     {id:"p-0007", nick:"苏星禾", job:"动作设计师", g:"她", hue:"#4a3a6a"},
     {id:"p-0392", nick:"1到4kHz让路", job:"影视作曲", g:"她", hue:"#2a3a4a"},
+    {id:"p-0127", nick:"眩光超过19", job:"建筑照明顾问", g:"他", hue:"#5a6a7a"},
     {id:"you", nick:"你", job:"访客", g:"他", hue:"#07c160"},
   ];
   const byId = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
@@ -115,6 +118,7 @@
     {id:"g-visual", name:"视觉工坊", notice:"贴图、贴引擎、贴页面都可以。", memberIds:["p-0002","p-0008","p-0007","you"]},
     {id:"g-life", name:"生活补课", notice:"能复述的步骤才算补课。", memberIds:["p-1005","p-1001","you"]},
     {id:"g-film", name:"剧哦拍片组", notice:"3D 引擎现场，不是 mp4。", memberIds:["p-0007","p-0392","p-0008","p-0001","you"]},
+    {id:"g-macro", name:"陆家嘴夜话", notice:"声明书、成本、终点、眩光。少口号。", memberIds:["p-0801","p-1002","p-0205","p-0127","you"]},
   ];
   const MEDIA = [
     ["image","图片","现场照片、材料"],
@@ -126,6 +130,7 @@
     ["news","新闻","最新标题"],
     ["link","链接","外链 / 补课"],
     ["page","网页项目","自己做的页面"],
+    ["moment","朋友圈","动态转发进群"],
   ];
   const STYLES = [
     ["field","现场实操"],
@@ -164,20 +169,30 @@
       ["p-0007","时间轴在引擎里。不要丢 mp4。"],
       ["p-0392","对白那段给 1 到 4kHz 让路，换乐器，不是压音量。"],
     ],
+    "g-macro": [
+      ["p-0801","读代理声明书比读财报更能预测管理层的行为。"],
+      ["p-1002","市场价三个字，在我这作废。"],
+      ["p-0127","眩光是照明里唯一越努力越糟的指标。"],
+    ],
   };
   const DEFAULT_PROMPTS = GROUPS.map(g => ({
     id: "pr-"+g.id,
     name: g.name + " · 提示词",
     body: g.notice,
-    style: g.id==="g-mine"||g.id==="g-trend" ? "mechanism" : g.id==="g-news" ? "oral" : g.id==="g-film" ? "casual" : "field",
+    style: g.id==="g-mine"||g.id==="g-trend"||g.id==="g-macro" ? "mechanism" : g.id==="g-news" ? "oral" : g.id==="g-film" ? "casual" : "field",
     media: g.id==="g-mine" ? ["chart","table","article","page","news"]
       : g.id==="g-trend" ? ["chart","table","lecture","article","engine"]
       : g.id==="g-news" ? ["news","image","link","article"]
+      : g.id==="g-macro" ? ["news","link","article"]
       : g.id==="g-film" ? ["engine","image","lecture"]
       : ["image","engine","link"],
     people: g.memberIds.filter(id => id!=="you"),
     groupId: g.id,
   }));
+
+  (JSON.parse(localStorage.getItem("a129-quno-groups") || "[]") || []).forEach(g => {
+    if (!GROUPS.some(x => x.id === g.id)) GROUPS.push(g);
+  });
 
   const store = {
     view: "chats",
@@ -189,10 +204,12 @@
     prompts: JSON.parse(localStorage.getItem("a129-quno-prompts") || "null") || DEFAULT_PROMPTS,
     extra: JSON.parse(localStorage.getItem("a129-quno-msgs") || "{}"),
     edit: null,
+    making: false,
   };
   function persist() {
     localStorage.setItem("a129-quno-prompts", JSON.stringify(store.prompts));
     localStorage.setItem("a129-quno-msgs", JSON.stringify(store.extra));
+    localStorage.setItem("a129-quno-groups", JSON.stringify(GROUPS.filter(g => g.custom)));
   }
   function msgs(gid) {
     const seed = (SEED[gid] || []).map((row, i) => ({id: gid+"-"+i, authorId: row[0], text: row[1]}));
@@ -205,21 +222,29 @@
   }
 
   let utter = null;
+  let gen = 0;
   function speak(id, text, msgId, onend) {
+    const my = gen;
     try { speechSynthesis.cancel(); } catch(e) {}
-    if (!text || !window.speechSynthesis) return;
+    if (!text || !window.speechSynthesis) { onend && onend(); return; }
     store.playing = msgId;
     const p = person(id);
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "zh-CN";
-    u.pitch = p.g === "她" ? 1.2 : 0.75;
-    u.rate = 0.95;
-    u.onend = () => { if (store.playing === msgId) { store.playing = null; onend && onend(); if (!store.readingAll) render(); } };
+    u.pitch = p.g === "她" ? 1.18 : 0.72;
+    u.rate = p.g === "她" ? 0.96 : 0.9;
+    u.onend = () => {
+      if (gen !== my) return;
+      if (store.playing === msgId) store.playing = null;
+      onend && onend();
+      if (!store.readingAll) render();
+    };
     utter = u;
-    speechSynthesis.speak(u);
+    try { speechSynthesis.speak(u); } catch(e) { onend && onend(); }
     render();
   }
   function stopSpeak() {
+    gen += 1;
     try { speechSynthesis.cancel(); } catch(e) {}
     utter = null;
     store.playing = null;
@@ -230,8 +255,10 @@
     const list = msgs(gid);
     let i = 0;
     store.readingAll = true;
+    gen += 1;
+    const my = gen;
     const next = () => {
-      if (!store.readingAll) return;
+      if (gen !== my || !store.readingAll) return;
       const m = list[i++];
       if (!m) { store.readingAll = false; store.playing = null; render(); return; }
       speak(m.authorId, person(m.authorId).nick + "。" + m.text, m.id, next);
@@ -301,7 +328,7 @@
           <div class="hdr">
             <button class="back" data-back>‹</button>
             ${g.name} <span style="color:var(--muted);font-weight:400;font-size:13px">(${g.memberIds.length})</span>
-            <button class="icon" data-all title="从头读到尾">${store.readingAll?"■":"朗读"}</button>
+            <button class="icon" data-all title="从头读到尾" style="width:auto;padding:0 8px;font-size:12px;color:${store.readingAll?"var(--green)":"inherit"}">${store.readingAll?"停止":"朗读"}</button>
           </div>
           <div class="msgs" id="msgs">${bubbles}</div>
           <div class="composer">
@@ -314,6 +341,7 @@
           <div class="rows">
             ${kpis}
             <div class="card"><h2>群对话 ${GROUPS.length}</h2>
+              <div style="padding:0 16px 12px"><button class="save" data-newgroup style="height:36px">新建群</button></div>
               ${GROUPS.map(gr => {
                 const pr = store.prompts.find(p => p.groupId===gr.id);
                 return `<button class="item" data-open="${gr.id}"><b>${gr.name}</b><div class="prev">${msgs(gr.id).length} 条 · ${gr.memberIds.length} 人 · ${pr?pr.name:"未绑提示词"}</div></button>`;
@@ -324,7 +352,7 @@
               ${promptList}
               ${form}
             </div>
-            <p class="notice">独立仓库 <a href="https://github.com/dannyling111/a129-quno">dannyling111/a129-quno</a> · 人物库 <a href="https://dannyling111.github.io/A129/peoplehub/?pilot=1">A129/peoplehub</a></p>
+            <p class="notice">独立仓库 <a href="https://github.com/dannyling111/a129-quno">dannyling111/a129-quno</a> · 人物库 <a href="https://dannyling111.github.io/A129/peoplehub/?pilot=1">A129/peoplehub</a> · 本页也挂在 <a href="https://dannyling111.github.io/A129/quno/">A129/quno</a></p>
           </div>
         </div>
       </div>
@@ -351,6 +379,19 @@
       speak(m.authorId, m.text, m.id);
     });
     document.querySelectorAll("[data-all]").forEach(el => el.onclick = () => speakAll(store.groupId));
+    document.querySelectorAll("[data-newgroup]").forEach(el => el.onclick = () => {
+      const name = window.prompt("新群名", "新群");
+      if (!name) return;
+      const notice = window.prompt("群公告 / 提示词", "少口号，多现场。") || "少口号，多现场。";
+      const id = "g-"+Date.now();
+      GROUPS.push({id, name, notice, memberIds:["you"], custom:true});
+      store.prompts.push({id:"pr-"+id, name:name+" · 提示词", body:notice, style:"field", media:["image","link"], people:[], groupId:id});
+      persist();
+      store.groupId = id;
+      store.view = "chats";
+      store.mobileThread = true;
+      render();
+    });
     const send = document.getElementById("send");
     const box = document.getElementById("box");
     if (box) box.oninput = () => { store.composer = box.value; };
