@@ -16,10 +16,23 @@
     <script type="module" crossorigin src="./assets/index-y2.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-BoobUhyX.css">
     <link rel="stylesheet" href="./player-bili.css">
+    <link rel="stylesheet" href="https://dannyling111.github.io/A129/juli/player-bili.css">
+    <link rel="stylesheet" href="./quno-player.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="main"><div id="app"></div></div>
     <script src="./quno-player.js" defer></script>
-    <script src="./bili-player.js" defer></script>
+    <script>
+      (function () {
+        var remote = document.createElement("script");
+        remote.src = "https://dannyling111.github.io/A129/juli/bili-player.js";
+        remote.onerror = function () {
+          var local = document.createElement("script");
+          local.src = "./bili-player.js";
+          document.body.appendChild(local);
+        };
+        document.body.appendChild(remote);
+      })();
+    </script>
   </body>
 </html>

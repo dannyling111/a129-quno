@@ -1,25 +1,45 @@
-/* 群哦引擎卡片：不要把 theater/pixelactor 选项页挂出来。
-   改挂 Drama Engine kiosk 成片，外面包剧哦那层哔哩播放壳。 */
+/* 群哦引擎卡片：挂 Drama Engine 成片，播放壳跟剧哦同一份。 */
 (function () {
-  const PLAY =
-    "https://dannyling111.github.io/A129/drama/play.html?kiosk=1&src=warehouse/";
+  const DRAMA = "https://dannyling111.github.io/A129/drama/";
+  const onPages = (() => {
+    try { return /\.github\.io$/i.test(location.hostname); } catch (e) { return false; }
+  })();
+  const playBase = onPages ? DRAMA + "play.html" : "/drama-engine/play.html";
   const FALLBACK = {
-    lecture: PLAY + "p-0049-teach.txt",
-    theater: PLAY + "p-0337-teach.txt",
-    pixel: PLAY + "p-0337-scene.txt",
-    board: PLAY + "p-0193-teach.txt",
+    lecture: "p-0049-teach.txt",
+    theater: "p-0337-teach.txt",
+    pixel: "p-0337-scene.txt",
+    board: "p-0193-teach.txt",
   };
 
+  function playUrl(file) {
+    return playBase + "?kiosk=1&src=warehouse/" + file;
+  }
+
   function rewrite(src) {
-    const s = String(src || "");
+    let s = String(src || "");
     if (!s) return s;
-    if (s.includes("kiosk=1") || s.includes("play.html")) return s;
-    if (s.includes("theater/?list=canon50") || s.includes("theater?list=canon50"))
-      return FALLBACK.lecture;
-    if (/\/theater\/?(\?|#|$)/.test(s) && !s.includes("play.html"))
-      return FALLBACK.theater;
-    if (s.includes("/pixelactor")) return FALLBACK.pixel;
+    if (!(s.includes("kiosk=1") || s.includes("play.html"))) {
+      if (s.includes("theater/?list=canon50") || s.includes("theater?list=canon50"))
+        s = playUrl(FALLBACK.lecture);
+      else if (/\/theater\/?(\?|#|$)/.test(s) && !s.includes("play.html"))
+        s = playUrl(FALLBACK.theater);
+      else if (s.includes("/pixelactor"))
+        s = playUrl(FALLBACK.pixel);
+    }
+    if (!onPages) {
+      s = s.replace(DRAMA + "play.html", "/drama-engine/play.html");
+    }
     return s;
+  }
+
+  function markCrossOrigin(iframe, box) {
+    try {
+      void iframe.contentWindow.document;
+      box.classList.remove("quno-xorigin");
+    } catch (e) {
+      box.classList.add("quno-xorigin");
+    }
   }
 
   function wrap(iframe) {
@@ -33,51 +53,49 @@
     iframe.dataset.qunoBili = "1";
     iframe.setAttribute("allow", "autoplay; fullscreen");
     iframe.setAttribute("allowfullscreen", "");
-    if (iframe.closest(".player-box")) return;
 
-    const overlay = iframe.closest(".z-40");
-    const box = document.createElement("div");
-    box.className = "player-box quno-engine-player";
-    const title =
-      overlay && overlay.querySelector("header .truncate")
-        ? overlay.querySelector("header .truncate").textContent.trim()
-        : iframe.getAttribute("title") || "3D 引擎成片";
-    box.dataset.title = title;
+    document.querySelectorAll(".bili-dock").forEach(function (el) { el.remove(); });
 
-    const parent = iframe.parentElement;
-    if (!parent) return;
-    parent.insertBefore(box, iframe);
-    box.appendChild(iframe);
+    let box = iframe.closest(".player-box");
+    if (!box) {
+      const overlay = iframe.closest(".z-40");
+      box = document.createElement("div");
+      box.className = "player-box quno-engine-player";
+      const titleEl = overlay && overlay.querySelector("header .truncate");
+      box.dataset.title = titleEl ? titleEl.textContent.trim() : iframe.getAttribute("title") || "3D 引擎成片";
+      const parent = iframe.parentElement;
+      if (!parent) return;
+      parent.insertBefore(box, iframe);
+      box.appendChild(iframe);
+      if (overlay) {
+        overlay.querySelectorAll('[data-quno="sound-gate"]').forEach(function (el) { el.remove(); });
+        parent.classList.add("quno-engine-stage");
+      }
+    }
+
     iframe.style.position = "relative";
     iframe.style.inset = "auto";
     iframe.style.width = "100%";
     iframe.style.height = "auto";
     iframe.style.aspectRatio = "16 / 9";
-    iframe.style.pointerEvents = "none";
 
-    if (overlay) {
-      overlay.querySelectorAll('[data-quno="sound-gate"]').forEach(function (el) {
-        el.remove();
-      });
-      parent.classList.add("quno-engine-stage");
-    }
+    const onLoad = function () { markCrossOrigin(iframe, box); };
+    iframe.addEventListener("load", onLoad);
+    if (iframe.contentWindow) onLoad();
   }
 
   function scan() {
     document
       .querySelectorAll(
-        "iframe[title='engine'], iframe[title='lector'], .z-40 iframe, iframe[src*='drama/play.html'], iframe[src*='theater'], iframe[src*='pixelactor']"
+        "iframe[title='engine'], iframe[title='lector'], .z-40 iframe, iframe[src*='drama/play.html'], iframe[src*='drama-engine/play.html'], iframe[src*='theater'], iframe[src*='pixelactor']"
       )
       .forEach(wrap);
   }
 
   const obs = new MutationObserver(scan);
   obs.observe(document.documentElement, { childList: true, subtree: true });
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", scan);
-  } else {
-    scan();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scan);
+  else scan();
   setTimeout(scan, 400);
   setTimeout(scan, 1200);
 })();
