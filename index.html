@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>群哦 · A129</title>
+  <meta name="description" content="人物库的微信群。文字朗读、后台提示词、多媒体与专业人员。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307C160'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' fill='white' font-family='sans-serif'%3E群%3C/text%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --green:#07c160; --bubble:#95ec69; --bg:#ededed; --chat:#f5f5f5; --bar:#f7f7f7;
+      --rail:#2e2e2e; --ink:#191919; --muted:#888; --line:#d9d9d9; --white:#fff; --link:#576b95;
+      --sans:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: var(--sans); color: var(--ink); background: var(--rail); }
+    button, [role=button], a { cursor: pointer; }
+    button { font-family: inherit; color: inherit; }
+    #app { height: 100%; display: flex; }
+    .rail { width: 68px; background: var(--rail); display: none; flex-direction: column; align-items: center; padding-top: 16px; color: #fff; }
+    .rail a, .rail button { width: 48px; height: 48px; display: grid; place-items: center; color: rgba(255,255,255,.55); text-decoration: none; border: 0; background: 0; border-radius: 8px; }
+    .rail a.on, .rail button.on { color: var(--green); }
+    .shell { flex: 1; display: flex; min-width: 0; background: var(--white); }
+    .list { width: 100%; max-width: 100%; display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+    .thread { display: none; flex: 1; min-width: 0; flex-direction: column; background: var(--chat); }
+    .hdr { height: 48px; display: flex; align-items: center; justify-content: center; background: var(--bar); font-size: 17px; font-weight: 500; position: relative; }
+    .hdr .icon { position: absolute; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: 0; }
+    .search { background: var(--bar); padding: 0 12px 8px; }
+    .search input { width: 100%; height: 36px; border: 0; border-radius: 6px; padding: 0 10px; background: var(--white); font-size: 14px; outline: 0; }
+    .rows { flex: 1; overflow: auto; }
+    .row { display: flex; gap: 12px; padding: 10px 12px; width: 100%; border: 0; background: var(--white); text-align: left; align-items: center; }
+    .row:hover, .row.on { background: var(--bg); }
+    .meta { min-width: 0; flex: 1; border-bottom: 1px solid rgba(217,217,217,.7); padding-bottom: 10px; }
+    .meta .t { display: flex; justify-content: space-between; gap: 8px; }
+    .meta .name { font-size: 16px; font-weight: 500; }
+    .meta .time, .meta .prev { font-size: 12px; color: var(--muted); }
+    .meta .prev { margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+    .face { width: 48px; height: 48px; border-radius: 6px; display: grid; place-items: center; color: #fff; font-size: 13px; flex-shrink: 0; }
+    .msgs { flex: 1; overflow: auto; padding: 8px 0 16px; }
+    .bubble-row { display: flex; gap: 8px; padding: 6px 12px; }
+    .bubble-row.me { flex-direction: row-reverse; }
+    .bubble { max-width: 74%; background: var(--white); border-radius: 8px; padding: 8px 10px; font-size: 15px; line-height: 1.45; position: relative; }
+    .me .bubble { background: var(--bubble); }
+    .who { font-size: 11px; color: var(--muted); margin-bottom: 2px; padding-left: 2px; }
+    .speak { margin-top: 6px; border: 0; background: 0; color: var(--muted); font-size: 11px; padding: 0; display: inline-flex; gap: 4px; align-items: center; }
+    .speak.on { color: var(--green); }
+    .sys { text-align: center; color: var(--muted); font-size: 12px; padding: 8px 32px; }
+    .composer { border-top: 1px solid var(--line); background: var(--bar); display: flex; gap: 6px; padding: 8px; align-items: flex-end; }
+    .composer textarea { flex: 1; min-height: 36px; max-height: 96px; resize: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 15px; outline: 0; font-family: inherit; }
+    .send { height: 32px; padding: 0 12px; background: var(--green); color: #fff; border: 0; border-radius: 4px; font-size: 13px; }
+    .tabbar { display: flex; height: 56px; border-top: 1px solid var(--line); background: var(--bar); }
+    .tabbar button { flex: 1; border: 0; background: 0; font-size: 10px; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+    .tabbar button.on { color: var(--green); }
+    .studio { display: none; flex: 1; min-width: 0; flex-direction: column; background: var(--bg); }
+    .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px; }
+    .kpi { background: var(--white); border-radius: 12px; padding: 12px 16px; }
+    .kpi b { display: block; font-size: 26px; font-weight: 500; }
+    .kpi span { font-size: 11px; color: var(--muted); }
+    .card { background: var(--white); margin: 0 12px 12px; border-radius: 12px; overflow: hidden; }
+    .card h2 { font-size: 15px; margin: 0; padding: 12px 16px; }
+    .item { width: 100%; text-align: left; border: 0; background: 0; padding: 12px 16px; border-top: 1px solid rgba(217,217,217,.8); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+    .chip { border: 0; border-radius: 999px; padding: 6px 12px; font-size: 12px; background: var(--bg); }
+    .chip.on { background: var(--green); color: #fff; }
+    .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 16px 12px; }
+    .check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+    .check.on { border-color: var(--green); background: rgba(7,193,96,.08); }
+    .form { padding: 0 16px 16px; display: grid; gap: 8px; }
+    .form input, .form textarea, .form select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; outline: 0; }
+    .save { height: 40px; background: var(--green); color: #fff; border: 0; border-radius: 6px; font-size: 14px; }
+    .back { position: absolute; left: 4px; width: 44px; height: 44px; display: none; place-items: center; border: 0; background: 0; }
+    .notice { font-size: 12px; color: var(--muted); padding: 8px 16px 14px; line-height: 1.5; }
+    @media (min-width: 860px) {
+      .rail { display: flex; }
+      .list { width: 320px; }
+      .thread { display: flex; }
+      .thread.open, .list.open { }
+      .tabbar { display: none; }
+      .kpis { grid-template-columns: repeat(4, 1fr); padding: 24px; }
+      .studio { }
+      .back { display: none !important; }
+    }
+    @media (max-width: 859px) {
+      .thread.open { display: flex; position: absolute; inset: 0; z-index: 4; }
+      .studio.open { display: flex; position: absolute; inset: 0; z-index: 5; }
+      .list.hide { display: none; }
+      .back { display: grid; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+  const PEOPLE = [
+    {id:"p-0801", nick:"代理声明书", job:"行业首席分析师", g:"他", hue:"#2c4a6e"},
+    {id:"p-0618", nick:"期限溢价", job:"宏观金融教授", g:"她", hue:"#7a3b2e"},
+    {id:"p-0744", nick:"先分母后分子", job:"资产配置", g:"他", hue:"#1b3d2f"},
+    {id:"p-1002", nick:"白石不说谎", job:"螺丝成本", g:"他", hue:"#4a4a4a"},
+    {id:"p-0205", nick:"先别看p值", job:"临床试验方法学家", g:"她", hue:"#3d5a80"},
+    {id:"p-0001", nick:"核桃油不黄", job:"美院油画教师", g:"她", hue:"#8a6a2a"},
+    {id:"p-0002", nick:"唐望舒", job:"双年展艺术总监", g:"她", hue:"#5c3d6e"},
+    {id:"p-1001", nick:"洱海边的人", job:"乡镇口述", g:"她", hue:"#2f6f6a"},
+    {id:"p-0008", nick:"Amara", job:"新媒体艺术家", g:"她", hue:"#6b2d4a"},
+    {id:"p-1005", nick:"不听完整的歌", job:"洗衣机报错", g:"她", hue:"#3a5a3a"},
+    {id:"p-0007", nick:"苏星禾", job:"动作设计师", g:"她", hue:"#4a3a6a"},
+    {id:"p-0392", nick:"1到4kHz让路", job:"影视作曲", g:"她", hue:"#2a3a4a"},
+    {id:"you", nick:"你", job:"访客", g:"他", hue:"#07c160"},
+  ];
+  const byId = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
+  const GROUPS = [
+    {id:"g-mine", name:"挖矿圆桌", notice:"每人读一份，只抽最核心一句。没有一级源，不许发言。", memberIds:["p-0801","p-0618","p-0744","p-1002","p-0205","you"]},
+    {id:"g-trend", name:"趋势讲席", notice:"深度默认 7–8。先机制，后口号。", memberIds:["p-0618","p-0801","p-0744","p-1002","p-0205","you"]},
+    {id:"g-news", name:"今日圆桌", notice:"新闻不是立场。谁贴，谁标来源。", memberIds:["p-0801","p-0205","p-1002","p-0002","p-1001","p-0008","you"]},
+    {id:"g-craft", name:"手艺现场", notice:"材料、公差、收尾。少抒情，多现场。", memberIds:["p-0001","p-1002","p-1001","you"]},
+    {id:"g-visual", name:"视觉工坊", notice:"贴图、贴引擎、贴页面都可以。", memberIds:["p-0002","p-0008","p-0007","you"]},
+    {id:"g-life", name:"生活补课", notice:"能复述的步骤才算补课。", memberIds:["p-1005","p-1001","you"]},
+    {id:"g-film", name:"剧哦拍片组", notice:"3D 引擎现场，不是 mp4。", memberIds:["p-0007","p-0392","p-0008","p-0001","you"]},
+  ];
+  const MEDIA = [
+    ["image","图片","现场照片、材料"],
+    ["chart","图表库","柱线对照，走 #42"],
+    ["table","表格","口径对照"],
+    ["engine","3D 引擎","现场，不是 mp4"],
+    ["lecture","讲席黑板","人物在右下角"],
+    ["article","公众号","深度文章"],
+    ["news","新闻","最新标题"],
+    ["link","链接","外链 / 补课"],
+    ["page","网页项目","自己做的页面"],
+  ];
+  const STYLES = [
+    ["field","现场实操"],
+    ["mechanism","机制深度"],
+    ["oral","口述档案"],
+    ["lecture","讲席课堂"],
+    ["casual","轻松闲聊"],
+  ];
+  const SEED = {
+    "g-mine": [
+      ["p-0801","先标来源。谁考核、谁改口径，比标题重要。"],
+      ["p-0744","先问分母能不能撑住，再问分子的故事。顺序反了，深度再高也是口号。"],
+      ["p-0618","先把实际利率和期限溢价分开。混在一起讲，时滞会被当成趋势。"],
+    ],
+    "g-trend": [
+      ["p-0618","本期只讲机制。黑板在上面，人在右下角小框。"],
+      ["p-0801","声明书比财报更能预测管理层。"],
+    ],
+    "g-news": [
+      ["p-0801","新闻不是立场。谁贴，谁标来源。"],
+      ["p-0205","别急着信摘要。主要终点改过没有，去注册平台对。"],
+    ],
+    "g-craft": [
+      ["p-0001","白色区域用核桃油调、暗部用亚麻仁油。同一张画上用两种油是专业做法。"],
+      ["p-1002","这事最后还是成本。图纸没动、验收动了，报价就是假的。"],
+    ],
+    "g-visual": [
+      ["p-0002","让一个从没进过美术馆的人，看完能自己说出一件作品好在哪。"],
+      ["p-0008","能复现就把版本号写上。生成不是一次过。"],
+    ],
+    "g-life": [
+      ["p-1005","拆了装不回去的，不要先做。"],
+      ["p-1001","完整的故事都是演的。问现场的人怎么说。"],
+    ],
+    "g-film": [
+      ["p-0007","时间轴在引擎里。不要丢 mp4。"],
+      ["p-0392","对白那段给 1 到 4kHz 让路，换乐器，不是压音量。"],
+    ],
+  };
+  const DEFAULT_PROMPTS = GROUPS.map(g => ({
+    id: "pr-"+g.id,
+    name: g.name + " · 提示词",
+    body: g.notice,
+    style: g.id==="g-mine"||g.id==="g-trend" ? "mechanism" : g.id==="g-news" ? "oral" : g.id==="g-film" ? "casual" : "field",
+    media: g.id==="g-mine" ? ["chart","table","article","page","news"]
+      : g.id==="g-trend" ? ["chart","table","lecture","article","engine"]
+      : g.id==="g-news" ? ["news","image","link","article"]
+      : g.id==="g-film" ? ["engine","image","lecture"]
+      : ["image","engine","link"],
+    people: g.memberIds.filter(id => id!=="you"),
+    groupId: g.id,
+  }));
+
+  const store = {
+    view: "chats",
+    groupId: "g-mine",
+    mobileThread: false,
+    composer: "",
+    playing: null,
+    readingAll: false,
+    prompts: JSON.parse(localStorage.getItem("a129-quno-prompts") || "null") || DEFAULT_PROMPTS,
+    extra: JSON.parse(localStorage.getItem("a129-quno-msgs") || "{}"),
+    edit: null,
+  };
+  function persist() {
+    localStorage.setItem("a129-quno-prompts", JSON.stringify(store.prompts));
+    localStorage.setItem("a129-quno-msgs", JSON.stringify(store.extra));
+  }
+  function msgs(gid) {
+    const seed = (SEED[gid] || []).map((row, i) => ({id: gid+"-"+i, authorId: row[0], text: row[1]}));
+    return seed.concat(store.extra[gid] || []);
+  }
+  function person(id) { return byId[id] || byId.you; }
+  function face(id, size) {
+    const p = person(id);
+    return `<span class="face" style="width:${size}px;height:${size}px;background:${p.hue};font-size:${Math.round(size/3.2)}px">${p.nick.slice(0,2)}</span>`;
+  }
+
+  let utter = null;
+  function speak(id, text, msgId, onend) {
+    try { speechSynthesis.cancel(); } catch(e) {}
+    if (!text || !window.speechSynthesis) return;
+    store.playing = msgId;
+    const p = person(id);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "zh-CN";
+    u.pitch = p.g === "她" ? 1.2 : 0.75;
+    u.rate = 0.95;
+    u.onend = () => { if (store.playing === msgId) { store.playing = null; onend && onend(); if (!store.readingAll) render(); } };
+    utter = u;
+    speechSynthesis.speak(u);
+    render();
+  }
+  function stopSpeak() {
+    try { speechSynthesis.cancel(); } catch(e) {}
+    utter = null;
+    store.playing = null;
+    store.readingAll = false;
+  }
+  function speakAll(gid) {
+    if (store.readingAll) { stopSpeak(); render(); return; }
+    const list = msgs(gid);
+    let i = 0;
+    store.readingAll = true;
+    const next = () => {
+      if (!store.readingAll) return;
+      const m = list[i++];
+      if (!m) { store.readingAll = false; store.playing = null; render(); return; }
+      speak(m.authorId, person(m.authorId).nick + "。" + m.text, m.id, next);
+    };
+    next();
+  }
+
+  function render() {
+    const g = GROUPS.find(x => x.id === store.groupId) || GROUPS[0];
+    const list = GROUPS.map(gr => {
+      const last = msgs(gr.id).at(-1);
+      return `<button class="row ${gr.id===g.id?"on":""}" data-open="${gr.id}">
+        ${face(gr.memberIds[0], 48)}
+        <div class="meta"><div class="t"><span class="name">${gr.name}</span><span class="time">${msgs(gr.id).length} 条</span></div>
+        <div class="prev">${last ? person(last.authorId).nick + "：" + last.text : "暂无消息"}</div></div>
+      </button>`;
+    }).join("");
+    const bubbles = msgs(g.id).map(m => {
+      const mine = m.authorId === "you";
+      const playing = store.playing === m.id;
+      return `<div class="bubble-row ${mine?"me":""}">
+        ${face(m.authorId, 40)}
+        <div>
+          ${mine?"":`<div class="who">${person(m.authorId).nick}</div>`}
+          <div class="bubble">${esc(m.text)}</div>
+          <button class="speak ${playing?"on":""}" data-speak="${m.id}">${playing?"朗读中":"朗读"}</button>
+        </div>
+      </div>`;
+    }).join("");
+    const prompt = store.prompts.find(p => p.groupId === g.id);
+    const kpis = `<div class="kpis">
+      <div class="kpi"><span>群对话</span><b>${GROUPS.length}</b></div>
+      <div class="kpi"><span>专业人员</span><b>${PEOPLE.length-1}</b></div>
+      <div class="kpi"><span>消息</span><b>${GROUPS.reduce((n,x)=>n+msgs(x.id).length,0)}</b></div>
+      <div class="kpi"><span>提示词</span><b>${store.prompts.length}</b></div>
+    </div>`;
+    const promptList = store.prompts.map(p => `<button class="item" data-edit="${p.id}"><b>${p.name}</b><div class="prev">${STYLES.find(s=>s[0]===p.style)?.[1]||""} · ${p.media.length} 种媒体 · ${p.people.length} 人 · ${GROUPS.find(x=>x.id===p.groupId)?.name||"未绑群"}</div></button>`).join("");
+    const ed = store.prompts.find(p => p.id === store.edit) || store.prompts[0];
+    const form = ed ? `<div class="form">
+      <input id="pn" value="${esc(ed.name)}" />
+      <textarea id="pb" rows="3">${esc(ed.body)}</textarea>
+      <div class="chips">${STYLES.map(s => `<button type="button" class="chip ${ed.style===s[0]?"on":""}" data-style="${s[0]}">${s[1]}</button>`).join("")}</div>
+      <div class="checks">${MEDIA.map(m => `<label class="check ${ed.media.includes(m[0])?"on":""}"><input type="checkbox" data-media="${m[0]}" ${ed.media.includes(m[0])?"checked":""}> <span><b>${m[1]}</b><br>${m[2]}</span></label>`).join("")}</div>
+      <div class="chips">${PEOPLE.filter(p=>p.id!=="you").map(p => `<button type="button" class="chip ${ed.people.includes(p.id)?"on":""}" data-person="${p.id}">${p.nick}</button>`).join("")}</div>
+      <select id="pg">${GROUPS.map(x => `<option value="${x.id}" ${ed.groupId===x.id?"selected":""}>${x.name}</option>`).join("")}</select>
+      <button class="save" id="psave">保存提示词</button>
+    </div>` : "";
+
+    document.getElementById("app").innerHTML = `
+      <nav class="rail">
+        <button data-view="chats" class="${store.view==="chats"?"on":""}" title="群聊">群</button>
+        <button data-view="studio" class="${store.view==="studio"?"on":""}" title="后台">后</button>
+        <div style="flex:1"></div>
+        <a href="https://github.com/dannyling111/a129-quno" target="_blank" rel="noreferrer">源</a>
+      </nav>
+      <div class="shell">
+        <div class="list ${store.mobileThread||store.view==="studio"?"hide":""}">
+          <div class="hdr">群哦<button class="icon" data-view="studio" title="后台">后</button></div>
+          <div class="search"><input placeholder="搜索" disabled /></div>
+          <div class="rows">${list}</div>
+          <div class="tabbar">
+            <button class="${store.view==="chats"?"on":""}" data-view="chats">群聊</button>
+            <button class="${store.view==="studio"?"on":""}" data-view="studio">后台</button>
+          </div>
+        </div>
+        <div class="thread ${store.mobileThread?"open":""}">
+          <div class="hdr">
+            <button class="back" data-back>‹</button>
+            ${g.name} <span style="color:var(--muted);font-weight:400;font-size:13px">(${g.memberIds.length})</span>
+            <button class="icon" data-all title="从头读到尾">${store.readingAll?"■":"朗读"}</button>
+          </div>
+          <div class="msgs" id="msgs">${bubbles}</div>
+          <div class="composer">
+            <textarea id="box" rows="1" placeholder="发消息">${esc(store.composer)}</textarea>
+            <button class="send" id="send">发送</button>
+          </div>
+        </div>
+        <div class="studio ${store.view==="studio"?"open":""}" style="${store.view==="studio"?"display:flex":""}">
+          <div class="hdr"><button class="back" data-view="chats">‹</button>后台 · 提示词系统</div>
+          <div class="rows">
+            ${kpis}
+            <div class="card"><h2>群对话 ${GROUPS.length}</h2>
+              ${GROUPS.map(gr => {
+                const pr = store.prompts.find(p => p.groupId===gr.id);
+                return `<button class="item" data-open="${gr.id}"><b>${gr.name}</b><div class="prev">${msgs(gr.id).length} 条 · ${gr.memberIds.length} 人 · ${pr?pr.name:"未绑提示词"}</div></button>`;
+              }).join("")}
+            </div>
+            <div class="card"><h2>提示词系统</h2>
+              <p class="notice">勾选这个群能用哪些多媒体（图片、图表库、3D 引擎…），调用哪些专业人员，以及说话风格。保存后写在这台浏览器。</p>
+              ${promptList}
+              ${form}
+            </div>
+            <p class="notice">独立仓库 <a href="https://github.com/dannyling111/a129-quno">dannyling111/a129-quno</a> · 人物库 <a href="https://dannyling111.github.io/A129/peoplehub/?pilot=1">A129/peoplehub</a></p>
+          </div>
+        </div>
+      </div>
+    `;
+    const box = document.getElementById("box");
+    if (box && document.activeElement !== box) box.value = store.composer;
+    const sc = document.getElementById("msgs");
+    if (sc) sc.scrollTop = sc.scrollHeight;
+    bind();
+  }
+  function esc(s){
+    return String(s||"").replace(/[&<>"]/g, c =>
+      c === "&" ? "&"+"amp;" : c === "<" ? "&"+"lt;" : c === ">" ? "&"+"gt;" : "&"+"quot;");
+  }
+  function bind() {
+    document.querySelectorAll("[data-view]").forEach(el => el.onclick = () => { store.view = el.dataset.view; store.mobileThread = false; render(); });
+    document.querySelectorAll("[data-open]").forEach(el => el.onclick = () => { store.groupId = el.dataset.open; store.view = "chats"; store.mobileThread = true; render(); });
+    document.querySelectorAll("[data-back]").forEach(el => el.onclick = () => { store.mobileThread = false; render(); });
+    document.querySelectorAll("[data-speak]").forEach(el => el.onclick = () => {
+      const m = msgs(store.groupId).find(x => x.id === el.dataset.speak);
+      if (!m) return;
+      if (store.playing === m.id) { stopSpeak(); render(); return; }
+      store.readingAll = false;
+      speak(m.authorId, m.text, m.id);
+    });
+    document.querySelectorAll("[data-all]").forEach(el => el.onclick = () => speakAll(store.groupId));
+    const send = document.getElementById("send");
+    const box = document.getElementById("box");
+    if (box) box.oninput = () => { store.composer = box.value; };
+    if (send) send.onclick = () => {
+      const t = (box.value || "").trim();
+      if (!t) return;
+      const row = {id: "m"+Date.now(), authorId: "you", text: t};
+      store.extra[store.groupId] = (store.extra[store.groupId] || []).concat(row);
+      store.composer = "";
+      persist();
+      render();
+    };
+    document.querySelectorAll("[data-edit]").forEach(el => el.onclick = () => { store.edit = el.dataset.edit; render(); });
+    document.querySelectorAll("[data-style]").forEach(el => el.onclick = () => { patch({style: el.dataset.style}); });
+    document.querySelectorAll("[data-media]").forEach(el => el.onchange = () => {
+      const ed = current(); if (!ed) return;
+      const set = new Set(ed.media);
+      if (el.checked) set.add(el.dataset.media); else set.delete(el.dataset.media);
+      patch({media: [...set]});
+    });
+    document.querySelectorAll("[data-person]").forEach(el => el.onclick = () => {
+      const ed = current(); if (!ed) return;
+      const set = new Set(ed.people);
+      if (set.has(el.dataset.person)) set.delete(el.dataset.person); else set.add(el.dataset.person);
+      patch({people: [...set]});
+    });
+    const save = document.getElementById("psave");
+    if (save) save.onclick = () => {
+      patch({
+        name: document.getElementById("pn").value,
+        body: document.getElementById("pb").value,
+        groupId: document.getElementById("pg").value,
+      });
+    };
+  }
+  function current() { return store.prompts.find(p => p.id === (store.edit || store.prompts[0]?.id)); }
+  function patch(partial) {
+    const ed = current(); if (!ed) return;
+    Object.assign(ed, partial);
+    persist();
+    render();
+  }
+  render();
+  </script>
+</body>
+</html>
