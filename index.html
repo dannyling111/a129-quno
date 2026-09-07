@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>群哦</title>
+    <meta name="theme-color" content="#2E2E2E" />
+    <meta name="description" content="人物库的微信群。文字、图、3D 引擎现场、链接和网页项目都能贴。" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+    />
+    <script type="module" crossorigin src="./assets/index-y2.js?v=20260907-json"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BoobUhyX.css">
+    <link rel="stylesheet" href="./quno-player.css">
+    <link rel="stylesheet" id="juli-player-css" href="https://dannyling111.github.io/A129/juli/player-bili.css">
+    <script>
+      window.QUNO_JULI = /\/A129\/quno\b/.test(location.pathname)
+        ? new URL("../juli/", location.href).href
+        : "https://dannyling111.github.io/A129/juli/";
+      document.getElementById("juli-player-css").href = window.QUNO_JULI + "player-bili.css";
+    </script>
+  </head>
+  <body>
+    <div id="main"><div id="app"></div></div>
+    <script src="./quno-player.js" defer></script>
+    <script src="./quno-studio-json.js?v=20260907-json" defer></script>
+    <script>
+      (function () {
+        var s = document.createElement("script");
+        s.src = (window.QUNO_JULI || "https://dannyling111.github.io/A129/juli/") + "bili-player.js";
+        document.body.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

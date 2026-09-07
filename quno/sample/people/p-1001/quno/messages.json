@@ -1,0 +1,18 @@
+{
+  "schema": "peoplehub-quno/v1",
+  "personId": "p-1001",
+  "messages": [
+    {
+      "id": "q-1001-01",
+      "groupId": "g-craft",
+      "createdAt": "2026-09-06T10:12:00+08:00",
+      "status": "published",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "村里修船的人也这样讲。完整的故事都是演的。你要看他手里那条缝。"
+        }
+      ]
+    }
+  ]
+}

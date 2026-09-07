@@ -1,0 +1,19 @@
+{
+  "name": "people-db/quno/v1",
+  "platform": "群哦",
+  "rule": "人物库是资产源。群哦只读取、只渲染。禁止在平台项目里另写一份人设或另存一份图。",
+  "write": "只写 people/{id}/ 文件夹",
+  "read": {
+    "quno": "people/{id}/quno/messages.json",
+    "profile": "people/{id}/profile.json",
+    "media": "people/{id}/notes/ 与 people/{id}/media/"
+  },
+  "blocks": ["text", "image", "engine", "link", "page"],
+  "engine": "iframe 指向 theater / drama / pixelactor，不是 mp4",
+  "browser": "浏览器里发送只写本机草稿。正式消息必须进人物资料夹再提交。",
+  "siblings": {
+    "red": "people/{id}/red/notes.json",
+    "juli": "people/{id}/juli/videos.json",
+    "louli": "people/{id}/louli/threads.json"
+  }
+}
