@@ -1,4 +1,5 @@
-/* 群哦引擎卡片：挂 Drama Engine 成片，播放壳跟剧哦同一份。 */
+/* 群哦不自做播放器。只把引擎 iframe 套进剧哦的 .player-box，
+   控件/样式一律用剧哦的 player-bili.css + bili-player.js。 */
 (function () {
   const DRAMA = "https://dannyling111.github.io/A129/drama/";
   const onPages = (() => {
@@ -9,7 +10,6 @@
     lecture: "p-0049-teach.txt",
     theater: "p-0337-teach.txt",
     pixel: "p-0337-scene.txt",
-    board: "p-0193-teach.txt",
   };
 
   function playUrl(file) {
@@ -27,9 +27,7 @@
       else if (s.includes("/pixelactor"))
         s = playUrl(FALLBACK.pixel);
     }
-    if (!onPages) {
-      s = s.replace(DRAMA + "play.html", "/drama-engine/play.html");
-    }
+    if (!onPages) s = s.replace(DRAMA + "play.html", "/drama-engine/play.html");
     return s;
   }
 
@@ -54,15 +52,13 @@
     iframe.setAttribute("allow", "autoplay; fullscreen");
     iframe.setAttribute("allowfullscreen", "");
 
-    document.querySelectorAll(".bili-dock").forEach(function (el) { el.remove(); });
-
     let box = iframe.closest(".player-box");
     if (!box) {
       const overlay = iframe.closest(".z-40");
       box = document.createElement("div");
-      box.className = "player-box quno-engine-player";
+      box.className = "player-box";
       const titleEl = overlay && overlay.querySelector("header .truncate");
-      box.dataset.title = titleEl ? titleEl.textContent.trim() : iframe.getAttribute("title") || "3D 引擎成片";
+      box.dataset.title = titleEl ? titleEl.textContent.trim() : iframe.getAttribute("title") || "";
       const parent = iframe.parentElement;
       if (!parent) return;
       parent.insertBefore(box, iframe);
@@ -73,15 +69,9 @@
       }
     }
 
-    iframe.style.position = "relative";
-    iframe.style.inset = "auto";
-    iframe.style.width = "100%";
-    iframe.style.height = "auto";
-    iframe.style.aspectRatio = "16 / 9";
-
     const onLoad = function () { markCrossOrigin(iframe, box); };
     iframe.addEventListener("load", onLoad);
-    if (iframe.contentWindow) onLoad();
+    try { if (iframe.contentWindow) onLoad(); } catch (e) {}
   }
 
   function scan() {

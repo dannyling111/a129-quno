@@ -15,23 +15,23 @@
     />
     <script type="module" crossorigin src="./assets/index-y2.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-BoobUhyX.css">
-    <link rel="stylesheet" href="./player-bili.css">
-    <link rel="stylesheet" href="https://dannyling111.github.io/A129/juli/player-bili.css">
     <link rel="stylesheet" href="./quno-player.css">
+    <link rel="stylesheet" id="juli-player-css" href="https://dannyling111.github.io/A129/juli/player-bili.css">
+    <script>
+      window.QUNO_JULI = /\/A129\/quno\b/.test(location.pathname)
+        ? new URL("../juli/", location.href).href
+        : "https://dannyling111.github.io/A129/juli/";
+      document.getElementById("juli-player-css").href = window.QUNO_JULI + "player-bili.css";
+    </script>
   </head>
   <body>
     <div id="main"><div id="app"></div></div>
     <script src="./quno-player.js" defer></script>
     <script>
       (function () {
-        var remote = document.createElement("script");
-        remote.src = "https://dannyling111.github.io/A129/juli/bili-player.js";
-        remote.onerror = function () {
-          var local = document.createElement("script");
-          local.src = "./bili-player.js";
-          document.body.appendChild(local);
-        };
-        document.body.appendChild(remote);
+        var s = document.createElement("script");
+        s.src = (window.QUNO_JULI || "https://dannyling111.github.io/A129/juli/") + "bili-player.js";
+        document.body.appendChild(s);
       })();
     </script>
   </body>
